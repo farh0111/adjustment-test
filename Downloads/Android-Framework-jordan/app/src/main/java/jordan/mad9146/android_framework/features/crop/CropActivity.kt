@@ -5,14 +5,13 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import jordan.mad9146.android_framework.databinding.ActivityCropBinding
 import java.io.File
 import java.io.FileOutputStream
-import android.app.AlertDialog
 
 class CropActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityCropBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,64 +19,43 @@ class CropActivity : AppCompatActivity() {
         binding = ActivityCropBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.aspectRatioButton.setOnClickListener {
-            showAspectRatioDialog()
-        }
+        binding.aspectRatioButton.setOnClickListener { showAspectRatioDialog() }
+        binding.rotateButton.setOnClickListener { binding.cropImageView.rotateImage(90) }
+        binding.flipButton.setOnClickListener { binding.cropImageView.flipImageHorizontally() }
 
         val imageUri: Uri? = intent.getParcelableExtra("imageUri")
-        val originalFilePath: String? = intent.getStringExtra("originalFilePath")
-
-        // Load the image into the CropImageView
+        val originalPath: String? = intent.getStringExtra("originalFilePath")
         binding.cropImageView.setImageUriAsync(imageUri)
 
-
-
-        // Handle crop button
         binding.cropButton.setOnClickListener {
-            val cropped: Bitmap? = binding.cropImageView.getCroppedImage()
-            cropped?.let {
-                val file = originalFilePath?.let { path -> File(path) }
-                if (file == null) {
-                    setResult(Activity.RESULT_CANCELED)
-                    finish()
-                    return@setOnClickListener
-                }
-
-                val outputStream = FileOutputStream(file)
-                it.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-                outputStream.close()
-
-                val resultIntent = Intent().apply {
-                    putExtra("croppedImageUri", Uri.fromFile(file))
-                }
-                setResult(Activity.RESULT_OK, resultIntent)
-                Thread.sleep(100)
+            val bmp: Bitmap? = binding.cropImageView.getCroppedImage()
+            if (bmp == null || originalPath == null) {
+                setResult(Activity.RESULT_CANCELED)
                 finish()
+                return@setOnClickListener
             }
+            val file = File(originalPath)
+            FileOutputStream(file).use { out -> bmp.compress(Bitmap.CompressFormat.JPEG, 100, out) }
+
+            // return the same file URI you just overwrote
+            Intent().putExtra("croppedImageUri", Uri.fromFile(file)).also {
+                setResult(Activity.RESULT_OK, it)
+            }
+            finish()
         }
     }
 
     private fun showAspectRatioDialog() {
-        val options = arrayOf("16:9", "4:3", "1:1", "Freeform")
-
+        val opts = arrayOf("16:9", "4:3", "1:1", "Freeform")
         AlertDialog.Builder(this)
             .setTitle("Choose Aspect Ratio")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> { // 16:9
-                        binding.cropImageView.setFixedAspectRatio(true)
-                        binding.cropImageView.setAspectRatio(16, 9)
-                    }
-                    1 -> { // 4:3
-                        binding.cropImageView.setFixedAspectRatio(true)
-                        binding.cropImageView.setAspectRatio(4, 3)
-                    }
-                    2 -> { // 1:1
-                        binding.cropImageView.setFixedAspectRatio(true)
-                        binding.cropImageView.setAspectRatio(1, 1)
-                    }
-                    3 -> { // Freeform
-                        binding.cropImageView.setFixedAspectRatio(false)
+            .setItems(opts) { _, i ->
+                binding.cropImageView.apply {
+                    when (i) {
+                        0 -> { setFixedAspectRatio(true); setAspectRatio(16, 9) }
+                        1 -> { setFixedAspectRatio(true); setAspectRatio(4, 3) }
+                        2 -> { setFixedAspectRatio(true); setAspectRatio(1, 1) }
+                        3 -> setFixedAspectRatio(false)
                     }
                 }
             }

@@ -16,6 +16,7 @@ kimAndroid = "0.25"
 kimVersion = "0.25"
 exifinterface = "1.4.1"
 navigationCompose = "2.9.0"
+viewfinderCore = "1.5.0-beta02"
 
 [libraries]
 android-gpuimage = { module = "com.github.Cats-OSS:android-gpuimage", version.ref = "androidGpuimage" }
@@ -40,6 +41,7 @@ kim-android = { module = "com.ashampoo:kim-android", version.ref = "kimAndroid" 
 kim-v025 = { module = "com.ashampoo:kim", version.ref = "kimVersion" }
 androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+androidx-viewfinder-core = { group = "androidx.camera.viewfinder", name = "viewfinder-core", version.ref = "viewfinderCore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

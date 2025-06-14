@@ -8,7 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
-import jp.co.cyberagent.android.gpuimage.GPUImage
+import jp.co.cyberagent.android.gpuimage.GPUImageView
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageBrightnessFilter
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageFilterGroup
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageSaturationFilter
@@ -18,83 +18,84 @@ import java.io.FileOutputStream
 
 class ImageAdjustActivity : AppCompatActivity() {
     private lateinit var binding: ActivityImageAdjustBinding
-    private lateinit var gpuImage: GPUImage
+
+    // filters
     private lateinit var brightnessFilter: GPUImageBrightnessFilter
     private lateinit var saturationFilter: GPUImageSaturationFilter
     private lateinit var filterGroup: GPUImageFilterGroup
+
+    // for re-export we still keep the original file URI
+    private lateinit var imageFile: File
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityImageAdjustBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Load the incoming URI and file
-        val croppedUri: Uri? = intent.getParcelableExtra("croppedImageUri")
-        if (croppedUri == null) {
+        // 1) grab the URI
+        val uri: Uri? = intent.getParcelableExtra("croppedImageUri")
+        if (uri == null) {
             setResult(Activity.RESULT_CANCELED)
             finish()
             return
         }
-        val imageFile = File(croppedUri.path!!)
-        // Decode into a Bitmap synchronously
-        val originalBitmap: Bitmap? = BitmapFactory.decodeFile(imageFile.absolutePath)
-        if (originalBitmap == null) {
-            setResult(Activity.RESULT_CANCELED)
-            finish()
-            return
-        }
+        imageFile = File(uri.path!!)
 
-        // Initialize GPUImage with the decoded Bitmap
-        gpuImage = GPUImage(this).apply {
-            setImage(originalBitmap)
-        }
+        // 2) decode and display in GPUImageView
+        val bmp = BitmapFactory.decodeFile(imageFile.absolutePath)
+            ?: run {
+                setResult(Activity.RESULT_CANCELED)
+                finish()
+                return
+            }
 
-        // Prepare filters
-        brightnessFilter = GPUImageBrightnessFilter(0.0f)
-        saturationFilter = GPUImageSaturationFilter(1.0f)
+        // 3) build filters
+        brightnessFilter = GPUImageBrightnessFilter(0f)
+        saturationFilter = GPUImageSaturationFilter(1f)
         filterGroup = GPUImageFilterGroup(listOf(brightnessFilter, saturationFilter))
 
-        // Display the original unfiltered image
-        binding.gpuImageView.setImage(originalBitmap)
+        // 4) set on GPUImageView
+        binding.gpuImageView.apply {
+            setImage(bmp)
+            setFilter(filterGroup)
+            requestRender()
+        }
 
-        // Brightness SeekBar (0–200 → –1.0…+1.0)
+        // 5) brightness slider
         binding.brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                brightnessFilter.setBrightness((progress - 100) / 100.0f)
-                applyFilters()
+            override fun onProgressChanged(sb: SeekBar, p: Int, fromUser: Boolean) {
+                brightnessFilter.setBrightness((p - 100) / 100f)
+                binding.gpuImageView.apply {
+                    setFilter(filterGroup)
+                    requestRender()
+                }
             }
-            override fun onStartTrackingTouch(seekBar: SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+            override fun onStartTrackingTouch(sb: SeekBar) = Unit
+            override fun onStopTrackingTouch(sb: SeekBar) = Unit
         })
 
-        // Saturation SeekBar (0–200 → 0…2.0)
+        // 6) saturation slider
         binding.saturationSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                saturationFilter.setSaturation(progress / 100.0f)
-                applyFilters()
+            override fun onProgressChanged(sb: SeekBar, p: Int, fromUser: Boolean) {
+                saturationFilter.setSaturation(p / 100f)
+                binding.gpuImageView.apply {
+                    setFilter(filterGroup)
+                    requestRender()
+                }
             }
-            override fun onStartTrackingTouch(seekBar: SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+            override fun onStartTrackingTouch(sb: SeekBar) = Unit
+            override fun onStopTrackingTouch(sb: SeekBar) = Unit
         })
 
-        // Apply & Save button
+        // 7) apply & save
         binding.applyButton.setOnClickListener {
-            gpuImage.setFilter(filterGroup)
-            val outBmp: Bitmap = gpuImage.bitmapWithFilterApplied
+            // capture from the GL view itself
+            val finalBmp = (binding.gpuImageView as GPUImageView).capture()
             FileOutputStream(imageFile).use { fos ->
-                outBmp.compress(Bitmap.CompressFormat.JPEG, 100, fos)
+                finalBmp.compress(Bitmap.CompressFormat.JPEG, 100, fos)
             }
-            setResult(Activity.RESULT_OK, Intent().apply {
-                putExtra("adjustedImageUri", croppedUri)
-            })
+            setResult(Activity.RESULT_OK, Intent().putExtra("adjustedImageUri", uri))
             finish()
         }
-    }
-
-    // Re-render the view with updated filters
-    private fun applyFilters() {
-        gpuImage.setFilter(filterGroup)
-        val filtered: Bitmap = gpuImage.bitmapWithFilterApplied
-        binding.gpuImageView.setImage(filtered)
     }
 }

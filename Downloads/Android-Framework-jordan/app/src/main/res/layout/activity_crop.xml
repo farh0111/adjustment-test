@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:cropper="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:padding="16dp"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
     <com.canhub.cropper.CropImageView
         android:id="@+id/cropImageView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        cropper:cropShape="rectangle"
         cropper:cropGuidelines="on"
-        cropper:cropFixAspectRatio="false"/>
+        cropper:cropShape="rectangle"
+        cropper:cropFixAspectRatio="false" />
 
     <Button
         android:id="@+id/aspectRatioButton"
@@ -20,9 +22,61 @@
         android:layout_height="wrap_content"
         android:text="Aspect Ratio" />
 
-    <Button
-        android:id="@+id/cropButton"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Crop" />
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/rotateButton"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Rotate" />
+
+        <Button
+            android:id="@+id/flipButton"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Flip" />
+
+        <Button
+            android:id="@+id/cropButton"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Crop" />
+    </LinearLayout>
+
+    <jp.co.cyberagent.android.gpuimage.GPUImageView
+        android:id="@+id/gpuImageView"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <SeekBar
+        android:id="@+id/brightnessSeekBar"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="200"
+        android:progress="100"/>
+
+    <SeekBar
+        android:id="@+id/saturationSeekBar"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="200"
+        android:progress="100"/>
+
+    <Button
+        android:id="@+id/applyButton"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Apply" />
 </LinearLayout>
